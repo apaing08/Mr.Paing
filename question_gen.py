@@ -7,13 +7,7 @@ import streamlit as st
 
 #openai.api_key = os.getenv("OPENAI_API_KEY")
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-if "OPENAI_API_KEY" in st.secrets:
-    st.success("✅ OpenAI key loaded!")
-    st.code("Key starts with: " + st.secrets["OPENAI_API_KEY"][:5] + "...")
-else:
-    st.error("❌ OPENAI_API_KEY not found in st.secrets.")
+client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def generate_math_question(standard, variation_params=None, question_mode="Both"):
     """
@@ -61,7 +55,8 @@ def generate_math_question(standard, variation_params=None, question_mode="Both"
     )
 
     try:
-        response = openai.ChatCompletion.create(
+        #response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4-turbo",
             messages=[
                 {"role": "system", "content": "You are a specialized math education AI that outputs valid JSON formatted responses only."},
@@ -69,7 +64,9 @@ def generate_math_question(standard, variation_params=None, question_mode="Both"
             ],
             temperature=0.3,
             max_tokens=1000,
-            response_format={"type": "json_object"}  # Ensure structured output
+            #####response_format={"type": "json_object"}  # Ensure structured output
+            response_format="json"
+
         )
         
         content = response["choices"][0]["message"]["content"].strip()
