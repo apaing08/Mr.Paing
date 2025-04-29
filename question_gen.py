@@ -3,8 +3,11 @@ import os
 import json
 import random
 import re
+import streamlit as st
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+#openai.api_key = os.getenv("OPENAI_API_KEY")
+
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def generate_math_question(standard, variation_params=None, question_mode="Both"):
     """
