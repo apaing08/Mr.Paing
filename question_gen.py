@@ -9,6 +9,12 @@ import streamlit as st
 
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
+if "OPENAI_API_KEY" in st.secrets:
+    st.success("✅ OpenAI key loaded!")
+    st.code("Key starts with: " + st.secrets["OPENAI_API_KEY"][:5] + "...")
+else:
+    st.error("❌ OPENAI_API_KEY not found in st.secrets.")
+
 def generate_math_question(standard, variation_params=None, question_mode="Both"):
     """
     Generates a structured math question with specific variation parameters.
