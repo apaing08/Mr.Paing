@@ -12,7 +12,7 @@ except:
     api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize the OpenAI client
-client = openai.OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key)
 
 def validate_answer(user_answer, correct_answer, answer_type):
     """
