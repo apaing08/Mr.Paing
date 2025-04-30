@@ -1,6 +1,7 @@
 from standard_labels import STANDARD_DETAILS
 import pandas as pd
 
+
 def format_student_performance(df, student_name):
     """
     Returns a dictionary grouped by category

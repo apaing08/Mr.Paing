@@ -1,14 +1,18 @@
-import openai
 import os
 import json
 import random
 import re
 import streamlit as st
+from openai import OpenAI
 
-#client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Try to get API key from Streamlit secrets or environment variable
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    api_key = os.getenv("OPENAI_API_KEY")
 
-# Create OpenAI client with API key from Streamlit secrets
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Initialize the OpenAI client
+client = openai.OpenAI(api_key=api_key)
 
 def generate_math_question(standard, variation_params=None, question_mode="Both"):
     """

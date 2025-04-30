@@ -1,9 +1,9 @@
 import random
 import json
-import openai
 import os
 import re
 import streamlit as st
+from openai import OpenAI
 
 # Try to get API key from Streamlit secrets or environment variable
 try:
