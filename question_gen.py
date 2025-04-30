@@ -69,7 +69,9 @@ def generate_math_question(standard, variation_params=None, question_mode="Both"
 
         )
         
-        content = response["choices"][0]["message"]["content"].strip()
+        #####content = response["choices"][0]["message"]["content"].strip()
+        content = response.choices[0].message.content.strip()
+
         return content, question_type
     except Exception as e:
         return f"Error generating question: {e}", "error"
