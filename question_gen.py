@@ -145,12 +145,11 @@ def parse_question_json(raw_output):
     try:
         # Check for error messages
         if isinstance(raw_output, str) and raw_output.startswith("Error generating question:"):
-            # Only use st.error if we're in a Streamlit context
-            # This function could be called from a non-Streamlit context
-            # so wrap in a try/except
             try:
+                # Try to use Streamlit's error function if we're in a Streamlit context
                 st.error(f"⚠️ {raw_output}")
             except:
+                # If not in a Streamlit context, just print the error
                 print(f"⚠️ {raw_output}")
             return None
             
@@ -173,15 +172,30 @@ def parse_question_json(raw_output):
                     question_data = json.loads(sanitized)
                 except:
                     # If still failing, this is likely not valid JSON
-                    raise ValueError("Could not parse response as JSON after sanitization")
+                    error_msg = "Could not parse response as JSON after sanitization"
+                    try:
+                        st.error(error_msg)
+                    except:
+                        print(error_msg)
+                    raise ValueError(error_msg)
             else:
-                raise ValueError("Response does not contain a JSON object")
+                error_msg = "Response does not contain a JSON object"
+                try:
+                    st.error(error_msg)
+                except:
+                    print(error_msg)
+                raise ValueError(error_msg)
         
         # Validate and ensure required fields
         required_fields = ["question_text", "correct_answer", "answer_type", "explanation"]
         for field in required_fields:
             if field not in question_data:
-                raise ValueError(f"Missing required field: {field}")
+                error_msg = f"Missing required field: {field}"
+                try:
+                    st.error(error_msg)
+                except:
+                    print(error_msg)
+                raise ValueError(error_msg)
         
         # Add equation field if missing
         if "equation" not in question_data:
@@ -194,9 +208,73 @@ def parse_question_json(raw_output):
         
     except Exception as e:
         # Print error without relying on Streamlit
-        print(f"⚠️ Error parsing question data: {e}")
+        error_msg = f"⚠️ Error parsing question data: {e}"
+        try:
+            st.error(error_msg)
+        except:
+            print(error_msg)
         print(f"Full raw content: {raw_output}")
         return None
+
+# def parse_question_json(raw_output):
+#     """
+#     Robust parser for question JSON that handles various edge cases
+#     """
+#     try:
+#         # Check for error messages
+#         if isinstance(raw_output, str) and raw_output.startswith("Error generating question:"):
+#             # Only use st.error if we're in a Streamlit context
+#             # This function could be called from a non-Streamlit context
+#             # so wrap in a try/except
+#             try:
+#                 st.error(f"⚠️ {raw_output}")
+#             except:
+#                 print(f"⚠️ {raw_output}")
+#             return None
+            
+#         # Debug output
+#         #print(f"Raw output to parse: {raw_output[:100]}...")
+        
+#         # First attempt: direct parsing
+#         try:
+#             question_data = json.loads(raw_output)
+#         except json.JSONDecodeError:
+#             # If direct parsing fails, try to sanitize the string
+#             sanitized = raw_output.strip()
+            
+#             # Make sure we're only getting a valid JSON object
+#             if sanitized.startswith('{') and '}' in sanitized:
+#                 end_index = sanitized.rindex('}') + 1
+#                 sanitized = sanitized[:end_index]
+                
+#                 try:
+#                     question_data = json.loads(sanitized)
+#                 except:
+#                     # If still failing, this is likely not valid JSON
+#                     raise ValueError("Could not parse response as JSON after sanitization")
+#             else:
+#                 raise ValueError("Response does not contain a JSON object")
+        
+#         # Validate and ensure required fields
+#         required_fields = ["question_text", "correct_answer", "answer_type", "explanation"]
+#         for field in required_fields:
+#             if field not in question_data:
+#                 raise ValueError(f"Missing required field: {field}")
+        
+#         # Add equation field if missing
+#         if "equation" not in question_data:
+#             question_data["equation"] = "none"
+        
+#         # At this point we have valid question data, log it for debugging
+#         #print(f"Ending Parse: Parsed question text: {question_data['question_text'][:200]}...")
+                
+#         return question_data
+        
+#     except Exception as e:
+#         # Print error without relying on Streamlit
+#         print(f"⚠️ Error parsing question data: {e}")
+#         print(f"Full raw content: {raw_output}")
+#         return None
 
 
 

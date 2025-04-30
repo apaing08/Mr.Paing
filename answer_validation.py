@@ -3,12 +3,16 @@ import json
 import openai
 import os
 import re
+import streamlit as st
 
-#openai.api_key = os.getenv("OPENAI_API_KEY")
+# Try to get API key from Streamlit secrets or environment variable
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    api_key = os.getenv("OPENAI_API_KEY")
 
-# client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Initialize the OpenAI client
+client = openai.OpenAI(api_key=api_key)
 
 def validate_answer(user_answer, correct_answer, answer_type):
     """
@@ -108,8 +112,8 @@ def generate_multiple_choice_options(correct_answer, answer_type, question_data=
             unique_options = unique_options[:3]
             
             # If we don't have enough options, add some random ones
-            while len(options) < 3:
-                new_opt = round(correct + random.uniform([-5,-4,-3,3,4,5]), 2)
+            while len(unique_options) < 3:
+                new_opt = round(correct + random.uniform(-5, 5), 2)
                 if abs(new_opt - correct_rounded) > 0.001 and new_opt not in unique_options:
                     unique_options.append(new_opt)
 
@@ -138,7 +142,8 @@ def generate_multiple_choice_options(correct_answer, answer_type, question_data=
                 response_format={"type": "json_object"}
             )
             
-            distractors = json.loads(response["choices"][0]["message"]["content"])["distractors"]
+            distractors_content = response.choices[0].message.content
+            distractors = json.loads(distractors_content)["distractors"]
             options = [correct_answer] + distractors
 
         except Exception as e:
