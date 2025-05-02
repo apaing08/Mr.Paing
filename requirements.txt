@@ -2,5 +2,5 @@ streamlit
 pandas
 openai>=1.0.0
 openpyxl
-
+matplotlib
 #./run.sh  
