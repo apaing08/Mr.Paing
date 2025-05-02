@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import random
+import matplotlib.pyplot as plt
 
 # Import from our utility modules
 from data_manager import load_student_data, save_question_result
@@ -8,6 +9,7 @@ from question_gen import parse_question_json, generate_unique_question
 from answer_validation import validate_answer, generate_multiple_choice_options
 from performance_formatter import format_student_performance
 from standard_labels import STANDARD_DETAILS
+
 
 # --- Helper Function ---
 def generate_and_store_question(standard, question_mode):
@@ -35,27 +37,25 @@ def generate_and_store_question(standard, question_mode):
             "question_data": question_data,
             "timestamp": pd.Timestamp.now()
         })
-    
-    # Clear previous responses
-    # Ensures that when a new question is generated, the MC options are also regenerated
-    # but they'll remain the stable during the interactions with the current question
-    # for key in ["user_answer", "answer_feedback", "selected_option", "mc_options_dict", "correct_letter"]:
-    #     if key in st.session_state:
-    #         del st.session_state[key]
 
-    # --- Reset session state if student changes question type
-    if "last_question_mode" not in st.session_state:
-        st.session_state["last_question_mode"] = question_mode
+    # Always clear previous answer-related session state on new question
+    for key in [
+        "user_answer",
+        "answer_feedback",
+        "selected_option",
+        "mc_options_dict",
+        "correct_letter",
+        "mc_selection",
+        "free_response_input",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
 
-    if st.session_state["last_question_mode"] != question_mode:
-        for key in ["question_raw", "question_type", "current_standard", "user_answer", "answer_feedback", "selected_option", "mc_options_dict", "correct_letter"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.session_state["last_question_mode"] = question_mode
+    st.session_state["last_question_mode"] = question_mode
 
 # --- Streamlit setup ---
 st.set_page_config(page_title="Math Practice App", layout="centered")
-st.title("📊 8th Grade Standards Dashboard")
+st.title("📊 Mr. Paing's Dashboard")
 
 # --- Load Data ---
 df = load_student_data("8th grade standards.xlsx")
@@ -79,7 +79,7 @@ weak_standards = student_row[1:][student_row[1:] < threshold].index.tolist()
 
 if weak_standards:
     st.warning(f"⚠️ Focus Areas: {', '.join(weak_standards)}")
-    selected_standard = st.selectbox("Select a weak standard to practice", weak_standards)
+    selected_standard = st.selectbox("Select a standard to practice", weak_standards)
 
     # --- Select question mode ---
     question_mode = st.selectbox(
@@ -107,10 +107,25 @@ if weak_standards:
             # Display using HTML to bypass markdown interpretation
             st.markdown(f"<p>{raw_text}</p>", unsafe_allow_html=True)
 
-            # Add regenerate button
-            if st.button("🔁 Try a different question for this standard"):
-                generate_and_store_question(st.session_state["current_standard"], question_mode)
-                st.rerun()
+            # --- Render Table if exists ---
+            if question_data.get("table"):
+                try:
+                    rows = question_data["table"]
+                    if rows and all(isinstance(row, list) for row in rows):
+                        df_table = pd.DataFrame(rows[1:], columns=rows[0])
+                        st.table(df_table)
+                except Exception as e:
+                    st.warning(f"⚠️ Unable to display table: {e}")
+
+            # --- Render Line Graph if exists ---
+            if question_data.get("graph"):
+                graph = question_data["graph"]
+                fig, ax = plt.subplots()
+                ax.plot(graph["x"], graph["y"], marker='o')
+                ax.set_title(graph.get("label", "Graph"))
+                ax.set_xlabel("x")
+                ax.set_ylabel("y")
+                st.pyplot(fig)
             
             if question_type == "multiple_choice":
                 # Generate options only if they don't exist in session state
@@ -163,33 +178,37 @@ if weak_standards:
                 selected = st.radio(
                     "Choose one:", 
                     [f"{k}) {v}" for k, v in labeled_options.items()],
+                    index = None,
                     key="mc_selection"
                 )
                 
                 if st.button("✅ Submit Answer"):
-                    picked = selected.split(")")[0]
-                    selected_answer = labeled_options[picked]
-                    is_correct = picked == correct_letter
-                    
-                    # Store feedback in session state
-                    st.session_state["answer_feedback"] = {
-                        "is_correct": is_correct,
-                        "correct_answer": f"{correct_letter}) {labeled_options[correct_letter]}",
-                        "explanation": question_data['explanation']
-                    }
-                    
-                    st.session_state["selected_option"] = picked
-                    
-                    # Save student's progress
-                    save_question_result(
-                        student_name, 
-                        st.session_state["current_standard"], 
-                        question_data, 
-                        str(selected_answer), 
-                        is_correct
-                    )
-                    
-                    st.rerun()
+                    if selected is None:
+                        st.error("❗ Please select an answer before submitting.")
+                    else:
+                        picked = selected.split(")")[0]
+                        selected_answer = labeled_options[picked]
+                        is_correct = picked == correct_letter
+                        
+                        # Store feedback in session state
+                        st.session_state["answer_feedback"] = {
+                            "is_correct": is_correct,
+                            "correct_answer": f"{correct_letter}) {labeled_options[correct_letter]}",
+                            "explanation": question_data['explanation']
+                        }
+                        
+                        st.session_state["selected_option"] = picked
+                        
+                        # Save student's progress
+                        save_question_result(
+                            student_name, 
+                            st.session_state["current_standard"], 
+                            question_data, 
+                            str(selected_answer), 
+                            is_correct
+                        )
+                        
+                        st.rerun()
                 
                 # Show feedback if available
                 if "answer_feedback" in st.session_state:
@@ -234,8 +253,7 @@ if weak_standards:
                         st.session_state["current_standard"], 
                         question_data, 
                         user_input, 
-                        # is_correct,
-                        question_data["answer_type"]
+                        is_correct,
                     )
                     
                     st.rerun()
