@@ -2,6 +2,7 @@ import os
 import json
 import random
 import re
+import pandas as pd
 import streamlit as st
 from openai import OpenAI
 
@@ -50,7 +51,7 @@ def generate_math_question(standard, variation_params=None, question_mode="Both"
         f'"question_text": "Clear, properly spaced question text with no formatting errors",\n'
         f'"correct_answer": "The exact expected answer",\n' 
         f'"answer_type": "{answer_type}",\n'
-        f'"explanation": "Step by step explanation with proper spacing",\n'
+        f'"explanation": "Step by step explanation with proper spacing, your explanation should be tailored to an 8th grader",\n'
         f'"equation": "x + 5 = 10"  # The core equation if applicable, otherwise "none"\n'
         f"}}\n\n"
         f'"table": [["header1", "header2"], [row1val1, row1val2], ...] or null,\n'
@@ -225,3 +226,45 @@ def parse_question_json(raw_output):
             print(error_msg)
         print(f"Full raw content: {raw_output}")
         return None
+
+
+def generate_and_store_question(standard, question_mode):
+    # Initialize question history if not present
+    if "question_history" not in st.session_state:
+        st.session_state.question_history = []
+    
+    # Generate a unique question
+    raw_output, question_type = generate_unique_question(
+        standard, 
+        question_history=[q["question_data"] for q in st.session_state.question_history if "question_data" in q],
+        question_mode=question_mode
+    )
+    
+    # Store in session state
+    st.session_state["question_raw"] = raw_output
+    st.session_state["question_type"] = question_type
+    st.session_state["current_standard"] = standard
+
+    # Parse and add to history if valid
+    question_data = parse_question_json(raw_output)
+    if question_data:
+        st.session_state.question_history.append({
+            "standard": standard,
+            "question_data": question_data,
+            "timestamp": pd.Timestamp.now()
+        })
+
+    # Always clear previous answer-related session state on new question
+    for key in [
+        "user_answer",
+        "answer_feedback",
+        "selected_option",
+        "mc_options_dict",
+        "correct_letter",
+        "mc_selection",
+        "free_response_input",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+
+    st.session_state["last_question_mode"] = question_mode
