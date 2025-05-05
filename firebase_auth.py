@@ -7,16 +7,34 @@ import json
 def initialize_firebase():
     """Initialize Firebase if not already initialized"""
     if not firebase_admin._apps:
-        # For development, we can use a JSON string in secrets.toml
-        # For production, use environment variables
-        if "FIREBASE_SERVICE_ACCOUNT" in st.secrets:
-            service_account_info = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
-            cred = credentials.Certificate(service_account_info)
-        else:
-            # Fallback to a local file for development
-            cred = credentials.Certificate("firebase-key.json")
-        
-        firebase_admin.initialize_app(cred)
+        try:
+            # Check if the Firebase credentials are in Streamlit secrets
+            if "FIREBASE_SERVICE_ACCOUNT" in st.secrets:
+                # Log successful finding of credentials (for debugging)
+                st.debug("Firebase credentials found in Streamlit secrets")
+                
+                try:
+                    # Try to parse the JSON string from secrets
+                    service_account_info = json.loads(st.secrets["FIREBASE_SERVICE_ACCOUNT"])
+                    cred = credentials.Certificate(service_account_info)
+                except json.JSONDecodeError as e:
+                    st.error(f"Failed to parse Firebase credentials JSON: {e}")
+                    st.error("Please check your secrets.toml file format")
+                    raise
+            # If we're in local development and have a JSON file
+            elif os.path.exists("firebase-key.json"):
+                cred = credentials.Certificate("firebase-key.json")
+            else:
+                # No credentials found - raise a clear error
+                st.error("No Firebase credentials found. Please add FIREBASE_SERVICE_ACCOUNT to your Streamlit secrets.")
+                raise FileNotFoundError("Firebase credentials not found in secrets or as a local file")
+                
+            # Initialize Firebase with the credentials
+            firebase_admin.initialize_app(cred)
+            
+        except Exception as e:
+            st.error(f"Firebase initialization error: {e}")
+            raise
     
     return firestore.client()
 
