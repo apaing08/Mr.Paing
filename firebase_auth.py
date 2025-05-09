@@ -11,7 +11,7 @@ def initialize_firebase():
             # Check if the Firebase credentials are in Streamlit secrets
             if "FIREBASE_SERVICE_ACCOUNT" in st.secrets:
                 # Log successful finding of credentials (for debugging)
-                st.debug("Firebase credentials found in Streamlit secrets")
+                #st.error("Firebase credentials found in Streamlit secrets")
                 
                 try:
                     # Try to parse the JSON string from secrets
